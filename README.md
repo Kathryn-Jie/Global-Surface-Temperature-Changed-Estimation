@@ -20,4 +20,6 @@
 - Exponential Smoothing (ETS) 
 - Seasonal ARIMA 
 
+by fpp2 package in R
+
 Data retrieved from https://www.ncei.noaa.gov/news/global-climate-201903.
