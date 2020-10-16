@@ -1,0 +1,300 @@
+---
+title: "Time Series Assignment 2"
+author: "Tey Yi Jie"
+date: "12/9/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("E:/Sem 5/Time Series and Forecasting Method Dr Dharini")
+library(fpp2)
+library(readxl)
+```
+
+```{r}
+#Importing data to R
+temp<-read_excel("Assignment.xlsx")
+mytemp<-ts(temp[1321:1681,-1],start=1990,end=c(2019,12),frequency = 12)
+mytemp
+```
+
+```{r}
+#Time plot
+autoplot(mytemp)+ggtitle("Estimated Global Surface Temperature Change")+xlab("Year")+ylab("Temperature Anomalities")
+```
+
+```{r}
+#From the time plot, we can observe the overall trend is going upward which is logical as pollution causing global warming to be more serious. 
+
+#Besides, some cyclic behaviors are spotted like the surge around 2016 was the hottest year on record due to the natural El Nino event that released heat from the Pacific Ocean.
+
+#Temperatures are unlikely to set a new peak in 2017 because the El Nino has begun to stop but temperature is still high due to greenhouse gases from burning fossil fuels keep building up in the atmosphere.
+```
+
+
+```{r}
+#Seasonal plot
+ggseasonplot(mytemp,year.labels = TRUE,year.labels.left = TRUE)+ggtitle("Seasonal plot: Estimated Global Surface Temperature Changed")+xlab("Year")+ylab("Temperature Anomalities")
+
+#Mostly the temperature anomalies is between 0.4ºC to 0.75ºC in June every year.
+
+#The graph also shows that there was an unusually temperature anomalies drop to 0ºC in Feb 1994 due to the western third of the country remained under the influence of mild Pacific airstream (most other years show an increase between January and February). 
+
+ggseasonplot(mytemp,polar = TRUE)+ggtitle("Polar Seasonal Plot: Estimated Global Surface Temperature Changed")+xlab("Year")+ylab("Temperature Anomalities)")
+
+#From the seasonal plot, we observed that the data experiences not so quite regular but still predictable changes that recur every calendar year. 
+#Moreover, the monthly temperature change show it has seasonality but weakly stable.
+
+```
+
+```{r}
+#Monthly Plot
+ggsubseriesplot(mytemp) + ggtitle("Seasonal Subseries Plot: Estimated Global Surface Temperature Changed")+xlab("Month")+ylab("Temperature Anomalities")
+```
+
+```{r}
+#Mean temperature anomalies is increasing from Jan until March but then proceed to decrease and staying constant until September.
+
+#From May until Sep, the mean temperature is constant due to the absorption of heat during the process of thawing that prevent the accession of temperature.
+#The increasing trend from January until March is because no land or ocean areas had record-cold temperature.
+
+#The highest mean temperature is in March because  in this month especially in year 2019 the temperature across global land and ocean surfaces was 1.91ºF above the average of 54.9ºF (climate change).
+
+```
+
+
+```{r}
+#ACF Plot
+ggAcf(mytemp)+ggtitle("ACF plot: Estimated Global Surface Temperature")
+```
+
+```{r}
+#The slow decrease in the ACF as the lags increase is due to the trend. While the “scalloped” shape is due to the present of seasonality.
+
+#From here we can clearly see that our data has trend and seasonality.
+
+```
+
+```{r}
+#BoxCox Transformation
+lambda<-BoxCox.lambda(mytemp)
+mytemp1<-BoxCox(mytemp,lambda)
+autoplot(mytemp1)+ggtitle("Estimated Global Surface Temperature Changed")+xlab("Year")+ylab("Temperature Anomalities")
+```
+
+```{r}
+#The size of variation is fluctuating randomly. So, we could not use the box cox transformation to stabilize the variance.
+
+#There is no changes in the time plot after BoxCox transformation, since the variance of the transformed data seems to be similar to the original data. Besides, the seasonal variations changes but not in level series, so we can conclude that it is unnecessary for us to do the transformation of our data.
+
+```
+
+
+```{r}
+#STL Decomposition
+decompose<-mstl(mytemp,robust=TRUE)
+autoplot(decompose)
+```
+```{r}
+#STL decomposition splits time series into trend, seasonal and remainder component.
+
+#The data shows that it has an upward trend.
+
+#For seasonal component, the variation of series changes but not with the level of the series.
+
+#The seasonal variations are roughly constant. 
+
+```
+
+```{r}
+#Seasonal subseries plot for decomposition
+decompose %>% seasonal() %>% ggsubseriesplot() + ggtitle("Seasonal subseries plot of STL Decomposition") + xlab("Year") + ylab("Temperature Anomalities")
+```
+```{r}
+#From the seasonal subseries plot, we could only observe the highest temperature anomalies is on March which means the global surface temperature in March is the highest and it also due to the El Nino persisted across the tropical Pacific Ocean on March 2019 and the rising of ocean surfaces’ temperature.
+ 
+#The underlying seasonal pattern is not spotted.
+
+```
+
+
+```{r}
+#One step forecst error
+#Compare MSE
+e<-tsCV(mytemp,ses,h=1)
+mean(e^2,na.rm = T)
+
+e2<-tsCV(mytemp,holt,h=1)
+mean(e2^2,na.rm = T)
+
+e3<-tsCV(mytemp,holt, damped=T ,h=1)
+mean(e3^2,na.rm = T)
+
+e4<-tsCV(mytemp,hw,seasonal="additive",h=1)
+mean(e4^2,na.rm = T)
+
+# Exponential Smoothing produce the lowest MSE which is 0.0132
+
+#The Holt-Winters’  Additive Methods has the highest MSE which is 0.0145.
+
+#By comparing the MSE of each method we can see that Simple Exponential Smoothing Method is better.
+
+```
+
+```{r}
+#Compare MAE
+mean(abs(e),na.rm = T)
+mean(abs(e2),na.rm = T)
+mean(abs(e3),na.rm = T)
+mean(abs(e4),na.rm = T)
+
+#We can see that the MAE of each method are not too far reached from each other. This is because by using MAE, the relative error is not always obvious.
+
+#Nevertheless, we can still see that Simple Exponential Smoothing has the lowest MAE which 0.0921.
+
+```
+
+```{r}
+#Best method from one step forecast error is simple exponential smoothing
+
+#Best method for one step Forecast graph and its parameter
+
+best1<-ses(mytemp,h=24)
+autoplot(best1)+xlab("Year")+ylab("Temperature Anomalities")
+best1$model
+```
+
+
+```{r}
+#Forming training set and test set data
+mytemp1<-window(mytemp,start=1990,end=c(2017,7))
+mytemp2<-window(mytemp,start=c(2017,8))
+```
+ 
+```{r}
+#Forecasting Graph
+autoplot(mytemp)+
+  autolayer(ses(mytemp1,h=24),series = "Simple Exponential Smoothing",PI=FALSE)+
+  autolayer(holt(mytemp1,h=24),series = "Holt's Linear Trend",PI=FALSE)+ autolayer(holt(mytemp1,h=24,damped = T),series = "Damped Trend",PI=FALSE)+
+  autolayer(hw(mytemp1,h=24,seasonal = "additive"),series = "Holt-Winters' Additive",PI=FALSE)+
+  ggtitle("Forecast of Estimated Global Surface Temperature Changed")+
+  xlab("Year")+ylab("Temperature Anomalities")+guides(colour=guide_legend(title="Forecast"))
+```
+
+```{r}
+#Finding test set error
+fc<-ses(mytemp1,h=24)
+fc2<-holt(mytemp1,h=24)
+fc3<-holt(mytemp1,h=24,damped = T)
+fc4<-hw(mytemp1,h=24,seasonal = "additive")
+
+print("Exponential smoothing")
+accuracy(fc,mytemp2)
+print("Holt's Linear Method")
+accuracy(fc2,mytemp2)
+print("Damped Holt's Linear Method")
+accuracy(fc3,mytemp2)
+print("Holt-Winters' additive method")
+accuracy(fc4,mytemp2)
+```
+
+```{r}
+#The best method is Holt’s Linear Trend method because it show the least MAE, MAPE and MASE. 
+```
+
+```{r}
+#Holt's Linear Trend Graph
+best2<-holt(mytemp,h=24)
+autoplot(best2)+xlab("Year")+ylab("Temperature Anomalities")
+best2$model
+```
+
+```{r}
+#Comparative Study: Holt Linear Trend and Drift Method
+autoplot(mytemp)+
+  autolayer(holt(mytemp1,h=24),series = "Holt's Linear Trend",PI=FALSE)+ autolayer(rwf(mytemp1,h=24,drift = TRUE),series = "Drift",PI=FALSE)+xlab("Year")+ylab("Temperature Anomalities")+guides(colour=guide_legend(title="Forecast"))
+```
+
+```{r}
+#Accuracy checking
+print("Drift")
+accuracy(rwf(mytemp1,h=24),drift=TRUE,mytemp2)
+print("Holt's Linear Method")
+accuracy(fc2,mytemp2)
+```
+```{r}
+#Holt’s Linear Trend is better than Drift because it has least error.
+```
+
+```{r}
+#Advanced Comparative Study: ETS
+fit.ets<-ets(mytemp1)
+summary (fit.ets) #get parameter 
+checkresiduals(fit.ets) #check whether have info left out
+```
+```{r}
+#We now employ the ETS statistical framework to forecast the estimated global surface temperature changed.
+
+#The ets() function select the model by minimising the AICc.
+
+#The model selected is ETS(A,N,N).
+
+#The model has additive error, no trend and no seasonality with alpha = 0.5159
+```
+
+```{r}
+#Advanced Comparative Study: SARIMA
+fit.sarima<-auto.arima(mytemp1)
+summary(fit.sarima) #get parameter
+checkresiduals(fit.sarima) #check info left out
+```
+```{r}
+#The seasonal ARIMA model incorporates both non-seasonal and seasonal factors.
+
+#The model selected is  ARIMA(1,1,1)(1,0,2)[12]
+
+#The model includes a non-seasonal AR(1) term,  first order non-seasonal difference, non-seasonal MA(1) term, a seasonal AR(1) term, no seasonal differencing, a seasonal MA(2) term and the seasonal period is S = 12
+```
+
+```{r}
+#Accuracy checking between ETS, SARIMA and Holt Linear
+print("ETS")
+a1<- fit.ets%>%forecast(h=24)%>%accuracy(mytemp)
+a1[,c("RMSE","MAE","MAPE","MASE")]
+print("SARIMA")
+a2 <- fit.sarima %>% forecast(h=24) %>% accuracy(mytemp)
+a2[,c("RMSE","MAE","MAPE","MASE")]
+print("Holt's Linear Method")
+accuracy(fc2,mytemp2)
+```
+```{r}
+#Holt’s Linear Trend  model seems to be the slightly more accurate model based on the test set RMSE, MAE, MAPE and MASE.
+```
+
+```{r}
+#Prediction Interval
+predi <- predict(fc2,mytemp,interval = "prediction")
+predi
+plot(predi)
+```
+
+```{r}
+#Residuals Checking
+best2<-holt(mytemp,h=24)
+autoplot(best2,PI=TRUE)+xlab("Year")+ylab("Temperature Anomalities")
+checkresiduals(best2)
+```
+```{r}
+#The residuals are correlated because the p-value is less than 0.05. So, the Null hypothesis is clearly rejected. We can also see a significant two spike which is lag 3 and 24 on the Holt’s in the ACF.
+
+#The residuals do not appear to be too far from normally distributed.
+
+```
+
+
+
+
